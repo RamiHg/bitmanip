@@ -1,69 +1,73 @@
 #ifndef WBITS_HPP
 #define WBITS_HPP
 
-#include "bits.hpp"
+#include <cstdint>
 
-namespace voxelio::wide {
+#include "bit.hpp"
+#include "bitmanip/bitcount.hpp"
+#include "bitmanip/bitrot.hpp"
+#include "bitmanip/intdiv.hpp"
+
+namespace bitmanip {
+namespace wide {
 
 template <typename Int, std::enable_if_t<std::is_integral_v<Int>, int> = 0>
-constexpr usize popCount(const Int input[], usize count)
+constexpr std::size_t popCount(const Int input[], std::size_t count)
 {
-    usize result = 0;
-    for (usize i = 0; i < count; ++i) {
-        result += voxelio::popCount(input[i]);
+    std::size_t result = 0;
+    for (std::size_t i = 0; i < count; ++i) {
+        result += popCount(input[i]);
     }
     return result;
 }
 
 template <typename Int, std::enable_if_t<std::is_integral_v<Int>, int> = 0>
-constexpr void bitClear(Int dest[], usize count)
+constexpr void bitClear(Int dest[], std::size_t count)
 {
-    for (usize i = 0; i < count; ++i) {
+    for (std::size_t i = 0; i < count; ++i) {
         dest[i] = 0;
     }
 }
 
 template <typename Int, std::enable_if_t<std::is_integral_v<Int>, int> = 0>
-constexpr void bitNot(Int out[], usize count)
+constexpr void bitNot(Int out[], std::size_t count)
 {
-    for (usize i = 0; i < count; ++i) {
+    for (std::size_t i = 0; i < count; ++i) {
         out[i] = ~out[i];
     }
 }
 
 template <typename Int, std::enable_if_t<std::is_integral_v<Int>, int> = 0>
-constexpr void bitAnd(Int dest[], const Int r[], usize count)
+constexpr void bitAnd(Int dest[], const Int r[], std::size_t count)
 {
-    for (usize i = 0; i < count; ++i) {
+    for (std::size_t i = 0; i < count; ++i) {
         dest[i] &= r[i];
     }
 }
 
 template <typename Int, std::enable_if_t<std::is_integral_v<Int>, int> = 0>
-constexpr void bitOr(Int dest[], const Int r[], usize count)
+constexpr void bitOr(Int dest[], const Int r[], std::size_t count)
 {
-    for (usize i = 0; i < count; ++i) {
+    for (std::size_t i = 0; i < count; ++i) {
         dest[i] |= r[i];
     }
 }
 
 template <typename Int, std::enable_if_t<std::is_integral_v<Int>, int> = 0>
-constexpr void bitXor(Int dest[], const Int r[], usize count)
+constexpr void bitXor(Int dest[], const Int r[], std::size_t count)
 {
-    for (usize i = 0; i < count; ++i) {
+    for (std::size_t i = 0; i < count; ++i) {
         dest[i] ^= r[i];
     }
 }
 
 template <typename Int, std::enable_if_t<std::is_unsigned_v<Int>, int> = 0>
-constexpr void leftShift(Int dest[], Int shift, usize count)
+constexpr void leftShift(Int dest[], Int shift, std::size_t count)
 {
-    constexpr usize typeBits = sizeof(Int) * 8;
-
-    VXIO_DEBUG_ASSERT_NE(count, 0u);
+    constexpr std::size_t typeBits = sizeof(Int) * 8;
 
     for (; shift >= typeBits; shift -= typeBits) {
-        for (usize i = count; i-- > 1;) {
+        for (std::size_t i = count; i-- > 1;) {
             dest[i] = dest[i - 1];
         }
         dest[0] = 0;
@@ -77,22 +81,20 @@ constexpr void leftShift(Int dest[], Int shift, usize count)
 
     dest[count - 1] <<= shift;
 
-    for (usize i = count - 1; i-- > 0;) {
-        Int shifted = voxelio::leftRot(dest[i], static_cast<unsigned char>(shift));
+    for (std::size_t i = count - 1; i-- > 0;) {
+        Int shifted = rotateLeft(dest[i], static_cast<unsigned char>(shift));
         dest[i + 0] = shifted & ~carryMask;
         dest[i + 1] = shifted & carryMask;
     }
 }
 
 template <typename Int, std::enable_if_t<std::is_unsigned_v<Int>, int> = 0>
-constexpr void rightShift(Int dest[], Int shift, usize count)
+constexpr void rightShift(Int dest[], Int shift, std::size_t count)
 {
-    constexpr usize typeBits = sizeof(Int) * 8;
-
-    VXIO_DEBUG_ASSERT_NE(count, 0u);
+    constexpr std::size_t typeBits = sizeof(Int) * 8;
 
     for (; shift >= typeBits; shift -= typeBits) {
-        for (usize i = 0; i < count - 1; ++i) {
+        for (std::size_t i = 0; i < count - 1; ++i) {
             dest[i] = dest[i + 1];
         }
         dest[count - 1] = 0;
@@ -106,25 +108,26 @@ constexpr void rightShift(Int dest[], Int shift, usize count)
 
     dest[0] >>= shift;
 
-    for (usize i = 1; i < count; ++i) {
-        Int shifted = voxelio::rightRot(dest[i], static_cast<unsigned char>(shift));
+    for (std::size_t i = 1; i < count; ++i) {
+        Int shifted = rotateRight(dest[i], static_cast<unsigned char>(shift));
         dest[i - 0] = shifted & ~carryMask;
         dest[i - 1] = shifted & carryMask;
     }
 }
+}  // namespace wide
 
-template <usize BITS, std::enable_if_t<BITS != 0, int> = 0>
+template <std::size_t BITS, std::enable_if_t<BITS != 0, int> = 0>
 class Bits {
 public:
     using valueType = uintmax_t;
 
-private:
+protected:
     /** the size in value types of this BitVec */
-    static constexpr usize size_ = divCeil(BITS, sizeof(valueType) * 8);
+    static constexpr std::size_t size_ = divCeil(BITS, sizeof(valueType) * 8);
     /** the number of bits that spill into the topmost element (0 if none) */
-    static constexpr usize bitSpill = BITS % (sizeof(valueType) * size_);
+    static constexpr std::size_t bitSpill = BITS % (sizeof(valueType) * size_);
     /** the bit mask of the spillage into the topmost element or 0b111...111 if there is no spillage */
-    static constexpr usize spillMask = ~valueType{0} << bitSpill;
+    static constexpr std::size_t spillMask = ~valueType{0} << bitSpill;
 
     constexpr void fixBack()
     {
@@ -154,14 +157,14 @@ public:
         return data_;
     }
 
-    constexpr usize size() const
+    constexpr std::size_t size() const
     {
         return size_;
     }
 
     void clear()
     {
-        for (usize i = 0; i < size(); ++i) {
+        for (std::size_t i = 0; i < size(); ++i) {
             data_[i] = 0;
         }
     }
@@ -170,7 +173,7 @@ public:
 
     constexpr operator bool()
     {
-        for (usize i = 0; i < size(); ++i) {
+        for (std::size_t i = 0; i < size(); ++i) {
             if (data_[i]) return true;
         }
         return false;
@@ -264,6 +267,6 @@ public:
 
 template class Bits<128>;
 
-}  // namespace voxelio::wide
+}  // namespace bitmanip
 
 #endif  // WBITS_HPP
