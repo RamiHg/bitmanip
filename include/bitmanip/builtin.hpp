@@ -223,7 +223,7 @@ __forceinline int clz(unsigned long x) noexcept
 #ifdef BITMANIP_64_BIT
 __forceinline int clz(uint64_t x) noexcept
 {
-    return __lzcnt64(x);
+    return static_cast<int>(__lzcnt64(x));
 }
 #else
 [[noreturn]] __forceinline int clz(uint64_t) noexcept

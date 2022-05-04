@@ -141,7 +141,7 @@ constexpr bool NATIVE_ENDIAN_LITTLE = std::endian::native == std::endian::little
 #elif defined(BITMANIP_X86_OR_X64)
 // ARCHITECTURE BASED ENDIANNESS DETECTION -----------------------------------------------------------------------------
 
-namespace voxelio::build {
+namespace bitmanip::build {
 
 constexpr bool NATIVE_ENDIAN_LITTLE = true;
 

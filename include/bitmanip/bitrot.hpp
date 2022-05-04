@@ -16,7 +16,7 @@ template <BITMANIP_UNSIGNED_TYPENAME(Uint)>
 
     rot &= mask;
     Uint hi = n << rot;
-    Uint lo = n >> (-rot & mask);
+    Uint lo = n >> (static_cast<Uint>(-static_cast<int>(rot)) & mask);
     return hi | lo;
 }
 
@@ -27,7 +27,7 @@ template <BITMANIP_UNSIGNED_TYPENAME(Uint)>
 
     rot &= mask;
     Uint lo = n >> rot;
-    Uint hi = n << (-rot & mask);
+    Uint hi = n << (static_cast<Uint>(-static_cast<int>(rot)) & mask);
     return hi | lo;
 }
 
